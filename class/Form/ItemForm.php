@@ -144,8 +144,10 @@ class ItemForm extends Publisher\ThemeTabForm
 
         if (!is_object($GLOBALS['xoopsUser'])) {
             $group = [XOOPS_GROUP_ANONYMOUS];
+            $currentUid = 0;
         } else {
             $group = $GLOBALS['xoopsUser']->getGroups();
+            $currentUid = $GLOBALS['xoopsUser']->uid();
         }
 
         $this->setExtra('enctype="multipart/form-data"');
@@ -195,7 +197,7 @@ class ItemForm extends Publisher\ThemeTabForm
                     $editor = (null !== $GLOBALS['xoopsUser']->getVar('publisher_editor')) ? $GLOBALS['xoopsUser']->getVar('publisher_editor') : ''; // Need set through user profile
                 }
             }
-            $editor = (empty($editor) || !in_array($editor, $allowedEditors, true)) ? $helper->getConfig('submit_editor') : $editor;
+            $editor = (empty($editor) || !in_array($editor, $allowedEditors)) ? $helper->getConfig('submit_editor') : $editor;
 
             $formEditor = new \XoopsFormSelectEditor($this, 'editor', $editor, $nohtml, $allowedEditors);
             $this->addElement($formEditor);
@@ -267,8 +269,11 @@ class ItemForm extends Publisher\ThemeTabForm
             $this->addElement($availableWrapPages);
         }
 
+        $userUid = $obj->getVar('itemid') > 0 ? $obj->uid() : $currentUid;
         if ($this->isGranted(Constants::PUBLISHER_UID)) {
-            $this->addElement(new \XoopsFormSelectUser(_CO_PUBLISHER_UID, 'uid', false, $obj->uid(), 1, false), false);
+            $this->addElement(new \XoopsFormSelectUser(_CO_PUBLISHER_UID, 'uid', false, $userUid, 1, false), false);
+        } else {
+            $this->addElement(new \XoopsFormHidden('uid', $userUid));
         }
 
         // Uid
@@ -334,6 +339,32 @@ class ItemForm extends Publisher\ThemeTabForm
             $datesub_datetime->setDescription(_CO_PUBLISHER_DATESUB_DSC);
             $this->addElement($datesub_datetime);
         }
+        
+        // Date expire
+        if ($this->isGranted(Constants::PUBLISHER_DATEEXPIRE)) {
+            if ($obj->isNew()) {
+                $dateexpire = time();
+                $dateexpire_opt = 0;
+            } else {
+                if (0 == $obj->getVar('dateexpire')) {
+                    $dateexpire_opt = 0;
+                    $dateexpire = time();
+                } else {
+                    $dateexpire_opt = 1;
+                    $dateexpire = $obj->getVar('dateexpire');
+                }
+            }
+            
+            $dateExpireYesNo = new \XoopsFormRadioYN('', 'use_expire_yn', $dateexpire_opt);
+            $dateexpire_datetime = new \XoopsFormDateTime('', 'dateexpire', $size = 15, $dateexpire, true);
+            if (0 == $dateexpire_opt) {$dateexpire_datetime->setExtra('disabled="disabled"');}
+            
+            $dateExpireTray = new \XoopsFormElementTray(_CO_PUBLISHER_DATEEXPIRE, '');
+            $dateExpireTray->setDescription(_CO_PUBLISHER_DATEEXPIRE_DSC);
+            $dateExpireTray->addElement($dateExpireYesNo);
+            $dateExpireTray->addElement($dateexpire_datetime);
+            $this->addElement($dateExpireTray);
+        }
 
         // NOTIFY ON PUBLISH
         if ($this->isGranted(Constants::PUBLISHER_NOTIFY)) {
@@ -361,8 +392,15 @@ class ItemForm extends Publisher\ThemeTabForm
             } else {
                 $catlist = $imgcatHandler->getList($group, 'imgcat_read', 1);
             }
-            $catids = array_keys($catlist);
-
+            $imgcatConfig = $helper->getConfig('submit_imgcat');
+            if (in_array(Constants::PUBLISHER_IMGCAT_ALL, $imgcatConfig)) {
+                $catids = array_keys($catlist);
+            } else {
+                // compare selected in options with readable of user
+                $catlist = array_intersect ($catlist, $imgcatConfig);
+                $catids = array_keys($catlist);
+            }
+            
             $imageObjs = [];
             if (!empty($catids)) {
                 $imageHandler = xoops_getHandler('image');
@@ -448,12 +486,12 @@ $publisher(document).ready(function () {
             $button   = new \XoopsFormLabel('', "<div id='publisher_upload_button'>" . _CO_PUBLISHER_IMAGE_UPLOAD_NEW . '</div>');
             $nicename = new \XoopsFormText('', 'image_nicename', 30, 30, _CO_PUBLISHER_IMAGE_NICENAME);
 
-            $imgcatHandler = xoops_getHandler('imagecategory');
-            if (method_exists($imgcatHandler, 'getListByPermission')) {
-                $catlist = $imgcatHandler->getListByPermission($group, 'imgcat_read', 1);
-            } else {
-                $catlist = $imgcatHandler->getList($group, 'imgcat_read', 1);
-            }
+            // $imgcatHandler = xoops_getHandler('imagecategory');
+            // if (method_exists($imgcatHandler, 'getListByPermission')) {
+                // $catlist = $imgcatHandler->getListByPermission($group, 'imgcat_read', 1);
+            // } else {
+                // $catlist = $imgcatHandler->getList($group, 'imgcat_read', 1);
+            // }
             $imagecat = new \XoopsFormSelect('', 'imgcat_id', '', 1);
             $imagecat->addOptionArray($catlist);
 

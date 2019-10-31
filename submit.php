@@ -122,7 +122,7 @@ $elements = [
 ];
 foreach ($elements as $element) {
     $classname = Constants::class;
-    if (Request::hasVar($element, 'POST') && !in_array(constant($classname . '::' . 'PUBLISHER_' . mb_strtoupper($element)), $formView, true)) {
+    if (Request::hasVar($element, 'POST') && !in_array(constant($classname . '::' . 'PUBLISHER_' . mb_strtoupper($element)), $formView)) {
         redirect_header('index.php', 1, _MD_PUBLISHER_SUBMIT_ERROR);
     }
 }
@@ -198,14 +198,14 @@ switch ($op) {
 
         // Storing the item object in the database
         if (!$itemObj->store()) {
-            redirect_header('javascript:history.go(-1)', 2, _MD_PUBLISHER_SUBMIT_ERROR);
+            redirect_header('<script>javascript:history.go(-1)</script>', 2, _MD_PUBLISHER_SUBMIT_ERROR);
         }
 
         // attach file if any
         if (is_array($itemUploadFile) && '' != $itemUploadFile['name']) {
             $fileUploadResult = Publisher\Utility::uploadFile(false, true, $itemObj);
             if (true !== $fileUploadResult) {
-                redirect_header('javascript:history.go(-1)', 3, $fileUploadResult);
+                redirect_header('<script>javascript:history.go(-1)</script>', 3, $fileUploadResult);
             }
         }
 

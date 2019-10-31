@@ -67,6 +67,7 @@ class Constants
     const PUBLISHER_NOTIFY = 23;
     const PUBLISHER_SUBTITLE = 24;
     const PUBLISHER_AUTHOR_ALIAS = 25;
+    const PUBLISHER_DATEEXPIRE = 26;
 
     // Global constants
     const PUBLISHER_SEARCH = 1;
@@ -76,4 +77,7 @@ class Constants
     const PUBLISHER_STATUS_FILE_NOTSET = -1;
     const PUBLISHER_STATUS_FILE_ACTIVE = 1;
     const PUBLISHER_STATUS_FILE_INACTIVE = 2;
+    
+    // Image categories
+    const PUBLISHER_IMGCAT_ALL = 'all';
 }

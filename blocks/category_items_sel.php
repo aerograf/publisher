@@ -54,13 +54,27 @@ function publisher_category_items_sel_show($options)
     // creating the ITEM objects that belong to the selected category
     $block['categories'] = [];
     foreach ($categories as $catId => $catObj) {
-        if (!in_array(0, $selectedcatids, true) && !in_array($catId, $selectedcatids, true)) {
+        if (!in_array(0, $selectedcatids) && !in_array($catId, $selectedcatids)) {
             continue;
         }
 
-        $criteria = new \Criteria('categoryid', $catId);
+//        $criteria = new \Criteria('categoryid', $catId);
+
+
+        $criteria = new \CriteriaCompo();
+        $criteria->add(new \Criteria('categoryid', $catId));
+
+
+
         /** @var Publisher\ItemHandler $itemHandler */
         $itemHandler = $helper->getHandler('Item');
+
+        $publisherIsAdmin = $helper->isUserAdmin();
+        if (!$publisherIsAdmin) {
+            $criteriaDateSub = new \Criteria('datesub', time(), '<=');
+            $criteria->add($criteriaDateSub);
+        }
+
         $items       = $itemHandler->getItems($limit, $start, [Constants::PUBLISHER_STATUS_PUBLISHED], -1, $sort, $order, '', true, $criteria, true);
         unset($criteria);
 

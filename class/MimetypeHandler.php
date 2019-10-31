@@ -43,7 +43,12 @@ class MimetypeHandler extends BaseObjectHandler
     public function __construct(\XoopsDatabase $db = null, $helper = null)
     {
         /** @var \XoopsModules\Publisher\Helper $this->helper */
-        $this->helper = $helper;
+        if (null === $helper) {
+            $this->helper = \XoopsModules\Publisher\Helper::getInstance();
+        } else {
+            $this->helper = $helper;
+        }
+        $this->publisherIsAdmin = $this->helper->isUserAdmin();
         $this->db = $db;
         $this->className = Mimetype::class;
     }
@@ -114,7 +119,7 @@ class MimetypeHandler extends BaseObjectHandler
     /**
      * Format mime_types into array
      *
-     * @param null $mimeExt
+     * @param mixed|null $mimeExt
      *
      * @return array array of mime_types
      */
@@ -122,10 +127,10 @@ class MimetypeHandler extends BaseObjectHandler
     {
         //        global $publisherIsAdmin;
         $ret = [];
-        if ($GLOBALS['xoopsUser'] && !$GLOBALS['publisherIsAdmin']) {
+        if ($GLOBALS['xoopsUser'] && !$this->publisherIsAdmin) {
             // For user uploading
             $crit = new \CriteriaCompo(new \Criteria('mime_user', 1)); //$sql = sprintf("SELECT * FROM `%s` WHERE mime_user=1", $GLOBALS['xoopsDB']->prefix($module->getVar('dirname', 'n') . '_mimetypes'));
-        } elseif ($GLOBALS['xoopsUser'] && $GLOBALS['publisherIsAdmin']) {
+        } elseif ($GLOBALS['xoopsUser'] && $this->publisherIsAdmin) {
             // For admin uploading
             $crit = new \CriteriaCompo(new \Criteria('mime_admin', 1)); //$sql = sprintf("SELECT * FROM `%s` WHERE mime_admin=1", $GLOBALS['xoopsDB']->prefix($module->getVar('dirname', 'n') . '_mimetypes'));
         } else {
@@ -221,7 +226,7 @@ class MimetypeHandler extends BaseObjectHandler
 
         $sql = sprintf('SELECT * FROM `%s`', $this->db->prefix($this->dbtable));
 
-        if (null !== $criteria && $criteria instanceof \CriteriaElement) {
+        if (null !== $criteria && $criteria instanceof \CriteriaCompo) {
             $sql .= ' ' . $criteria->renderWhere();
             if ('' != $criteria->getSort()) {
                 $sql .= ' ORDER BY ' . $criteria->getSort() . ' ' . $criteria->getOrder();

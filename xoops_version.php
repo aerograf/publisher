@@ -27,14 +27,17 @@ use XoopsModules\Publisher\Constants;
 require_once __DIR__ . '/preloads/autoloader.php';
 
 $moduleDirName = basename(__DIR__);
+$moduleDirNameUpper = mb_strtoupper($moduleDirName);
+xoops_loadLanguage('common');
+
 xoops_load('xoopseditorhandler');
 $editorHandler = \XoopsEditorHandler::getInstance();
 $xoops_url     = parse_url(XOOPS_URL);
 
 $modversion = [
     'version'             => '1.07',
-    'module_status'       => 'RC1',
-    'release_date'        => '2019/02/09',
+    'module_status'       => 'Final',
+    'release_date'        => '2019/06/08',
     'name'                => _MI_PUBLISHER_MD_NAME,
     'description'         => _MI_PUBLISHER_MD_DESC,
     'author'              => 'Trabis (www.Xuups.com)',
@@ -60,7 +63,7 @@ $modversion = [
     'onUpdate'            => 'include/onupdate.php',
     // ------------------- Min Requirements -------------------
     'min_php'             => '5.5',
-    'min_xoops'           => '2.5.9',
+    'min_xoops'           => '2.5.10',
     'min_admin'           => '1.2',
     'min_db'              => ['mysql' => '5.5'],
     // ------------------- Admin Menu -------------------
@@ -162,7 +165,7 @@ $modversion['blocks'][] = [
     'description' => _MI_PUBLISHER_ITEMSPOT_DSC,
     'show_func'   => 'publisher_items_spot_show',
     'edit_func'   => 'publisher_items_spot_edit',
-    'options'     => '1|5|0|0|1|1|bullet|0|0',
+    'options'     => '1|5|0|0|1|1|bullet|0|0|date|0',
     'template'    => 'publisher_items_spot.tpl',
 ];
 
@@ -350,7 +353,7 @@ $modversion['config'][] = [
     'valuetype'   => 'text',
     'default'     => 'none',
     'options'     => array_merge([_MI_PUBLISHER_URL_REWRITE_NONE => 'none'], [_MI_PUBLISHER_URL_REWRITE_PATHINFO => 'path-info'], // Is performing module install/update?
-                                 ($isModuleAction && in_array(PHP_SAPI, ['apache', 'apache2handler', 'cgi-fcgi', 'fpm-fcgi'], true)) ? [_MI_PUBLISHER_URL_REWRITE_HTACCESS => 'htaccess'] : []),
+                                 ($isModuleAction && in_array(PHP_SAPI, ['apache', 'apache2handler', 'cgi-fcgi', 'fpm-fcgi'])) ? [_MI_PUBLISHER_URL_REWRITE_HTACCESS => 'htaccess'] : []),
     'category'    => 'seo',
 ];
 
@@ -908,17 +911,6 @@ $modversion['config'][] = [
     'category'    => 'submit',
 ];
 
-//$modversion['config'][] = array(
-//    'name'        => 'submit_editor',
-//    'title'       => '_MI_PUBLISHER_EDITOR',
-//    'description' => '_MI_PUBLISHER_EDITOR_DSC',
-//    'formtype'    => 'select',
-//    'valuetype'   => 'text',
-//    'options'     => XoopsLists::getEditorList(),
-//    'default'     => 'dhtmltextarea',
-//    'category'    => 'submit'
-//);
-
 $modversion['config'][] = [
     'name'        => 'submit_editor_rows',
     'title'       => '_MI_PUBLISHER_EDITOR_ROWS',
@@ -1032,6 +1024,23 @@ $modversion['config'][] = [
     'formtype'    => 'yesno',
     'valuetype'   => 'int',
     'default'     => 1,
+    'category'    => 'submit',
+];
+
+$optCats = [_MI_PUBLISHER_IMGCAT_ALL => Constants::PUBLISHER_IMGCAT_ALL];
+$imageCategoryHandler = xoops_getHandler('imagecategory');
+$catlist = $imageCategoryHandler->getList();
+foreach ($catlist as $key => $value) {
+    $optCats[$value] = $value;
+}
+$modversion['config'][] = [
+    'name'        => 'submit_imgcat',
+    'title'       => '_MI_PUBLISHER_IMGCAT',
+    'description' => '_MI_PUBLISHER_IMGCAT_DSC',
+    'formtype'    => 'select_multi',
+    'valuetype'   => 'array',
+    'options'     => $optCats,
+    'default'     => [Constants::PUBLISHER_IMGCAT_ALL],
     'category'    => 'submit',
 ];
 
@@ -1266,6 +1275,18 @@ $modversion['config'][] = [
     'formtype'    => 'yesno',
     'valuetype'   => 'int',
     'default'     => 0,
+];
+
+/**
+ * Show Developer Tools?
+ */
+$modversion['config'][] = [
+    'name' => 'displayDeveloperTools',
+    'title' => 'CO_' . $moduleDirNameUpper . '_' . 'SHOW_DEV_TOOLS',
+    'description' => 'CO_' . $moduleDirNameUpper . '_' . 'SHOW_DEV_TOOLS_DESC',
+    'formtype' => 'yesno',
+    'valuetype' => 'int',
+    'default' => 0,
 ];
 
 // Comments

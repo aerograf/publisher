@@ -60,7 +60,7 @@ function publisher_latest_news_show($options)
     $allcats = false;
     if (!isset($options[29])) {
         $allcats = true;
-    } elseif (in_array(0, explode(',', $options[29]), true)) {
+    } elseif (in_array(0, explode(',', $options[29]))) {
         $allcats = true;
     }
 
@@ -77,6 +77,15 @@ function publisher_latest_news_show($options)
         unset($criteria); //removes category option
         $criteria = new \CriteriaCompo();
         $criteria->add(new \Criteria('itemid', '(' . $selectedStories . ')', 'IN'));
+    }
+
+    $publisherIsAdmin = $helper->isUserAdmin();
+    if (!$publisherIsAdmin) {
+        if (null === $criteria) {
+            $criteria = new \CriteriaCompo();
+        }
+        $criteriaDateSub = new \Criteria('datesub', time(), '<=');
+        $criteria->add($criteriaDateSub);
     }
 
     $itemsObj = $itemHandler->getItems($limit, $start, [Constants::PUBLISHER_STATUS_PUBLISHED], -1, $sort, $order, '', true, $criteria, 'itemid');

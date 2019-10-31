@@ -55,6 +55,10 @@ class BaseObjectHandler extends \XoopsPersistableObjectHandler
      */
     protected $idfield = 'id';
 
+    public $helper = null;
+    public $publisherIsAdmin = null;
+
+
     /**
      * @param \XoopsDatabase|null $db
      */

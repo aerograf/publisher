@@ -63,6 +63,7 @@ class Item extends \XoopsObject
         $this->initVar('uid', XOBJ_DTYPE_INT, 0, false);
         $this->initVar('author_alias', XOBJ_DTYPE_TXTBOX, '', false, 255);
         $this->initVar('datesub', XOBJ_DTYPE_INT, '', false);
+        $this->initVar('dateexpire', XOBJ_DTYPE_INT, '', false);
         $this->initVar('status', XOBJ_DTYPE_INT, -1, false);
         $this->initVar('image', XOBJ_DTYPE_INT, 0, false);
         $this->initVar('images', XOBJ_DTYPE_TXTBOX, '', false, 255);
@@ -217,8 +218,7 @@ class Item extends \XoopsObject
             // this page uses smarty template
             ob_start();
             require $page;
-            $content = ob_get_contents();
-            ob_end_clean();
+            $content = ob_get_clean();
             // Cleaning the content
             $bodyStartPos = mb_strpos($content, '<body>');
             if ($bodyStartPos) {
@@ -300,6 +300,23 @@ class Item extends \XoopsObject
         return formatTimestamp($this->getVar('datesub', $format), $dateFormat);
     }
 
+    /**
+     * @param string $dateFormat
+     * @param string $format
+     *
+     * @return string
+     */
+    public function getDateExpire($dateFormat = '', $format = 'S')
+    {
+        if (empty($dateFormat)) {
+            $dateFormat = $this->helper->getConfig('format_date');
+        }
+        if (0 == $this->getVar('dateexpire')) {
+            return false;
+        }
+        return formatTimestamp($this->getVar('dateexpire', $format), $dateFormat);
+    }
+    
     /**
      * @param int $realName
      *
@@ -734,17 +751,18 @@ class Item extends \XoopsObject
             $itemPageId = $display;
             $display    = 'all';
         }
-        $item['itemid']    = $this->itemid();
-        $item['uid']       = $this->uid();
-        $item['itemurl']   = $this->getItemUrl();
-        $item['titlelink'] = $this->getItemLink('titlelink', $maxCharTitle);
-        $item['subtitle']  = $this->subtitle();
-        $item['datesub']   = $this->getDatesub();
-        $item['counter']   = $this->counter();
-        $item['who']       = $this->getWho();
-        $item['when']      = $this->getWhen();
-        $item['category']  = $this->getCategoryName();
-        $item              = $this->getMainImage($item);
+        $item['itemid']     = $this->itemid();
+        $item['uid']        = $this->uid();
+        $item['itemurl']    = $this->getItemUrl();
+        $item['titlelink']  = $this->getItemLink('titlelink', $maxCharTitle);
+        $item['subtitle']   = $this->subtitle();
+        $item['datesub']    = $this->getDatesub();
+        $item['dateexpire'] = $this->getDateExpire();
+        $item['counter']    = $this->counter();
+        $item['who']        = $this->getWho();
+        $item['when']       = $this->getWhen();
+        $item['category']   = $this->getCategoryName();
+        $item               = $this->getMainImage($item);
         switch ($display) {
             case 'summary':
             case 'list':
@@ -756,8 +774,9 @@ class Item extends \XoopsObject
                 if (!$summary) {
                     $summary = $this->getBody($maxCharSummary);
                 }
-                $item['summary'] = $summary;
-                $item            = $this->toArrayFull($item);
+                $item['summary']   = $summary;
+                $item['truncated'] = $maxCharSummary > 0 && strlen($summary) > $maxCharSummary;
+                $item              = $this->toArrayFull($item);
                 break;
             case 'all':
                 $item = $this->toArrayFull($item);
@@ -997,7 +1016,7 @@ class Item extends \XoopsObject
         $this->setVar('subtitle', Request::getString('subtitle', '', 'POST'));
         $this->setVar('item_tag', Request::getString('item_tag', '', 'POST'));
 
-        if (false !== ($imageFeatured = Request::getString('image_featured', '', 'POST'))) {
+        if ('' !== ($imageFeatured = Request::getString('image_featured', '', 'POST'))) {
             $imageItem = Request::getArray('image_item', [], 'POST');
             //            $imageFeatured = Request::getString('image_featured', '', 'POST');
             //Todo: get a better image class for xoops!
@@ -1012,7 +1031,7 @@ class Item extends \XoopsObject
                 if ($imageName == $imageFeatured) {
                     $this->setVar('image', $id);
                 }
-                if (in_array($imageName, $imageItem, true)) {
+                if (in_array($imageName, $imageItem)) {
                     $imageItemIds[] = $id;
                 }
             }
@@ -1059,6 +1078,32 @@ class Item extends \XoopsObject
             //            }
         } elseif ($this->isNew()) {
             $this->setVar('datesub', time());
+        }
+        
+        // date expire
+        if (0 !== Request::getInt('use_expire_yn', 0, 'POST')) {
+            if ('' !== Request::getString('dateexpire', '', 'POST')) {
+                $resExDate = Request::getArray('dateexpire', [], 'POST');
+                $resExTime = Request::getArray('dateexpire', [], 'POST');
+                $localTimestamp = strtotime($resExDate['date']) + $resExTime['time'];
+
+                // get user Timezone offset and use it to find out the Timezone, needed for PHP DataTime
+                $userTimeoffset = $GLOBALS['xoopsUser']->getVar('timezone_offset');
+                $tz             = timezone_name_from_abbr(null, $userTimeoffset * 3600);
+                if (false === $tz) {
+                    $tz = timezone_name_from_abbr(null, $userTimeoffset * 3600, false);
+                }
+
+                $userTimezone = new \DateTimeZone($tz);
+                $gmtTimezone  = new \DateTimeZone('GMT');
+                $myDateTime   = new \DateTime('now', $gmtTimezone);
+                $offset       = $userTimezone->getOffset($myDateTime);
+
+                $gmtTimestamp = $localTimestamp - $offset;
+                $this->setVar('dateexpire', $gmtTimestamp);
+            }
+        } else {
+            $this->setVar('dateexpire', 0);
         }
 
         $this->setVar('short_url', Request::getString('item_short_url', '', 'POST'));

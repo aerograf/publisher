@@ -23,8 +23,6 @@ namespace XoopsModules\Publisher;
 
 use XoopsModules\Publisher;
 
-//namespace Publisher;
-
 // defined('XOOPS_ROOT_PATH') || die('Restricted access');
 require_once dirname(__DIR__) . '/include/common.php';
 
@@ -42,6 +40,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
      * @var Publisher\Helper
      */
     public $helper;
+    public $publisherIsAdmin;
 
     protected $resultCatCounts = [];
 
@@ -52,7 +51,12 @@ class ItemHandler extends \XoopsPersistableObjectHandler
     public function __construct(\XoopsDatabase $db = null, $helper = null)
     {
         /** @var Publisher\Helper $this->helper */
-        $this->helper = $helper;
+        if (null === $helper) {
+            $this->helper = \XoopsModules\Publisher\Helper::getInstance();
+        } else {
+            $this->helper = $helper;
+        }
+        $this->publisherIsAdmin = $this->helper->isUserAdmin();
         parent::__construct($db, 'publisher_items', Item::class, 'itemid', 'title');
     }
 
@@ -67,6 +71,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         if ($isNew) {
             $obj->setDefaultPermissions();
         }
+        $obj->helper = $this->helper;
 
         return $obj;
     }
@@ -199,7 +204,8 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         }
         $theObjects = [];
         while (false !== ($myrow = $this->db->fetchArray($result))) {
-            $item = new Item();
+//            $item = new Item();
+            $item = $this->create();
             $item->assignVars($myrow);
             $theObjects[$myrow['itemid']] = $item;
             unset($item);
@@ -309,9 +315,8 @@ class ItemHandler extends \XoopsPersistableObjectHandler
      */
     public function getItemsCount($categoryid = -1, $status = '', $notNullFields = '')
     {
-        //        global $publisherIsAdmin;
         $criteriaPermissions = null;
-        if (!$GLOBALS['publisherIsAdmin']) {
+        if (!$this->publisherIsAdmin) {
             $criteriaPermissions = new \CriteriaCompo();
             // Categories for which user has access
             $categoriesGranted = $this->helper->getHandler('Permission')->getGrantedItems('category_read');
@@ -324,6 +329,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         }
         //        $ret = array();
         $criteria = $this->getItemsCriteria($categoryid, $status, $notNullFields, $criteriaPermissions);
+
         /*
                 if (isset($categoryid) && $categoryid != -1) {
                     $criteriaCategory = new \Criteria('categoryid', $categoryid);
@@ -361,16 +367,50 @@ class ItemHandler extends \XoopsPersistableObjectHandler
      * @param string $notNullFields
      * @param bool   $asObject
      * @param string $idKey
+     * @param bool   $excludeExpired
      *
      * @return array
      */
-    public function getAllPublished($limit = 0, $start = 0, $categoryid = -1, $sort = 'datesub', $order = 'DESC', $notNullFields = '', $asObject = true, $idKey = 'none')
+    public function getAllPublished($limit = 0, $start = 0, $categoryid = -1, $sort = 'datesub', $order = 'DESC', $notNullFields = '', $asObject = true, $idKey = 'none', $excludeExpired = true)
     {
-        $otherCriteria = new \Criteria('datesub', time(), '<=');
+        
+        $otherCriteria = new \CriteriaCompo();
+        if (!$this->publisherIsAdmin) {
+                    $criteriaDateSub = new \Criteria('datesub', time(), '<=');
+                    $otherCriteria->add($criteriaDateSub);
+        }
+		if ($excludeExpired) {
+            // by default expired items are excluded from list of published items
+            $criteriaExpire = new \CriteriaCompo();
+            $criteriaExpire->add(new \Criteria('dateexpire', '0'), 'OR');
+            $criteriaExpire->add(new \Criteria('dateexpire', time() , '>='), 'OR');
+            $otherCriteria->add($criteriaExpire);
+        }
 
         return $this->getItems($limit, $start, [Constants::PUBLISHER_STATUS_PUBLISHED], $categoryid, $sort, $order, $notNullFields, $asObject, $otherCriteria, $idKey);
     }
 
+    /**
+     * @param int    $limit
+     * @param int    $start
+     * @param int    $categoryid
+     * @param string $sort
+     * @param string $order
+     * @param string $notNullFields
+     * @param bool   $asObject
+     * @param string $idKey
+     *
+     * @return array
+     */
+    public function getAllExpired($limit = 0, $start = 0, $categoryid = -1, $sort = 'datesub', $order = 'DESC', $notNullFields = '', $asObject = true, $idKey = 'none')
+    {
+        $otherCriteria = new \CriteriaCompo();
+        $otherCriteria->add(new \Criteria('dateexpire', time(), '<='));
+        $otherCriteria->add(new \Criteria('dateexpire', 0, '>'));
+
+        return $this->getItems($limit, $start, -1, $categoryid, $sort, $order, $notNullFields, $asObject, $otherCriteria, $idKey);
+    }
+    
     /**
      * @param Item $obj
      *
@@ -460,24 +500,23 @@ class ItemHandler extends \XoopsPersistableObjectHandler
     }
 
     /**
-     * @param  int          $limit
-     * @param  int          $start
-     * @param  array|string $status
-     * @param  int          $categoryid
-     * @param  string       $sort
-     * @param  string       $order
-     * @param  string       $notNullFields
-     * @param  bool         $asObject
-     * @param  null         $otherCriteria
-     * @param  bool|string  $idKey
+     * @param int                $limit
+     * @param int                $start
+     * @param array|string       $status
+     * @param int                $categoryid
+     * @param string             $sort
+     * @param string             $order
+     * @param string             $notNullFields
+     * @param bool               $asObject
+     * @param null|\CriteriaCompo $otherCriteria
+     * @param bool|string        $idKey
      * @return array
      * @internal param bool $asObject
      */
     public function getItems($limit = 0, $start = 0, $status = '', $categoryid = -1, $sort = 'datesub', $order = 'DESC', $notNullFields = '', $asObject = true, $otherCriteria = null, $idKey = 'none')
     {
-        //        global $publisherIsAdmin;
         $criteriaPermissions = null;
-        if (!$GLOBALS['publisherIsAdmin']) {
+        if (!$this->publisherIsAdmin) {
             $criteriaPermissions = new \CriteriaCompo();
             // Categories for which user has access
             $categoriesGranted = $this->helper->getHandler('Permission')->getGrantedItems('category_read');
@@ -625,7 +664,6 @@ class ItemHandler extends \XoopsPersistableObjectHandler
      */
     public function getItemsFromSearch($queryArray = [], $andor = 'AND', $limit = 0, $offset = 0, $userid = 0, $categories = [], $sortby = 0, $searchin = '', $extra = '')
     {
-        //        global $publisherIsAdmin;
         $count = 0;
         $ret   = [];
         $criteriaKeywords = $criteriaPermissions = $criteriaUser = null;
@@ -633,7 +671,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         $grouppermHandler = xoops_getHandler('groupperm');
         $groups           = is_object($GLOBALS['xoopsUser']) ? $GLOBALS['xoopsUser']->getGroups() : XOOPS_GROUP_ANONYMOUS;
         $searchin         = empty($searchin) ? ['title', 'body', 'summary'] : (is_array($searchin) ? $searchin : [$searchin]);
-        if (in_array('all', $searchin, true) || 0 === count($searchin)) {
+        if (in_array('all', $searchin) || 0 === count($searchin)) {
             $searchin = ['title', 'subtitle', 'body', 'summary', 'meta_keywords'];
         }
         if ($userid && is_array($userid)) {
@@ -652,26 +690,26 @@ class ItemHandler extends \XoopsPersistableObjectHandler
             $criteriaKeywords = new \CriteriaCompo();
             foreach ($queryArray as $iValue) {
                 $criteriaKeyword = new \CriteriaCompo();
-                if (in_array('title', $searchin, true)) {
+                if (in_array('title', $searchin)) {
                     $criteriaKeyword->add(new \Criteria('title', '%' . $iValue . '%', 'LIKE'), 'OR');
                 }
-                if (in_array('subtitle', $searchin, true)) {
+                if (in_array('subtitle', $searchin)) {
                     $criteriaKeyword->add(new \Criteria('subtitle', '%' . $iValue . '%', 'LIKE'), 'OR');
                 }
-                if (in_array('body', $searchin, true)) {
+                if (in_array('body', $searchin)) {
                     $criteriaKeyword->add(new \Criteria('body', '%' . $iValue . '%', 'LIKE'), 'OR');
                 }
-                if (in_array('summary', $searchin, true)) {
+                if (in_array('summary', $searchin)) {
                     $criteriaKeyword->add(new \Criteria('summary', '%' . $iValue . '%', 'LIKE'), 'OR');
                 }
-                if (in_array('meta_keywords', $searchin, true)) {
+                if (in_array('meta_keywords', $searchin)) {
                     $criteriaKeyword->add(new \Criteria('meta_keywords', '%' . $iValue . '%', 'LIKE'), 'OR');
                 }
                 $criteriaKeywords->add($criteriaKeyword, $andor);
                 unset($criteriaKeyword);
             }
         }
-        if (!$GLOBALS['publisherIsAdmin'] && (count($categories) > 0)) {
+        if (!$this->publisherIsAdmin && (count($categories) > 0)) {
             $criteriaPermissions = new \CriteriaCompo();
             // Categories for which user has access
             $categoriesGranted = $grouppermHandler->getItemIds('category_read', $groups, $this->helper->getModule()->getVar('mid'));
@@ -755,7 +793,8 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         $sql .= " " . $criteriaBig->renderWhere();
         $result = $this->db->query($sql);
         while (false !== ($row = $this->db->fetchArray($result))) {
-            $item = new Item();
+//            $item = new Item();
+            $item = static::create();
             $item->assignVars($row);
             $ret[$row['categoryid']] = $item;
             unset($item);
@@ -769,7 +808,8 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         $sql    .= ' JOIN ' . $this->db->prefix($this->helper->getDirname() . '_items') . ' mi ON mi.datesub = mo.date';
         $result = $this->db->query($sql);
         while (false !== ($row = $this->db->fetchArray($result))) {
-            $item = new Item();
+            // $item = new Item();
+            $item = $this->create();
             $item->assignVars($row);
             $ret[$row['categoryid']] = $item;
             unset($item);
