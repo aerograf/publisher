@@ -63,7 +63,7 @@ class CategoryForm extends \XoopsThemeForm
         $memberHandler    = xoops_getHandler('member');
         $this->userGroups = $memberHandler->getGroupList();
 
-        parent::__construct(_AM_PUBLISHER_CATEGORY, 'form', xoops_getenv('PHP_SELF'), 'post', true);
+        parent::__construct(_AM_PUBLISHER_CATEGORY, 'form', xoops_getenv('SCRIPT_NAME'), 'post', true);
         $this->setExtra('enctype="multipart/form-data"');
 
         $this->createElements();
@@ -76,7 +76,7 @@ class CategoryForm extends \XoopsThemeForm
         // Category
         $criteria = new \Criteria(null);
         $criteria->setSort('weight');
-        $criteria->setOrder('ASC');
+        $criteria->order = 'ASC'; // patch for XOOPS <= 2.5.10, does not set order correctly using setOrder() method
         $myTree        = new \XoopsObjectTree($this->helper->getHandler('Category')->getObjects($criteria), 'categoryid', 'parentid');
         $moduleDirName = basename(dirname(__DIR__));
         $module        = \XoopsModule::getByDirname($moduleDirName);

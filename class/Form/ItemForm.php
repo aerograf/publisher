@@ -22,7 +22,6 @@ namespace XoopsModules\Publisher\Form;
  * @since           1.0
  * @author          trabis <lusopoemas@gmail.com>
  */
-
 use Xmf\Request;
 use XoopsModules\Publisher;
 use XoopsModules\Publisher\Constants;
@@ -179,6 +178,8 @@ class ItemForm extends Publisher\ThemeTabForm
         if (xoops_isActiveModule('tag') && $this->isGranted(Constants::PUBLISHER_ITEM_TAG)) {
             require_once $GLOBALS['xoops']->path('modules/tag/include/formtag.php');
             $textTags = new \XoopsModules\Tag\FormTag('item_tag', 60, 255, $obj->getVar('item_tag', 'e'), 0);
+            $textTags->setClass('form-control');
+            /** @var \XoopsModules\Tag\FormTag $textTags */
             $this->addElement($textTags);
         }
 
@@ -287,7 +288,7 @@ class ItemForm extends Publisher\ThemeTabForm
             $uidSelect->setDescription(_CO_PUBLISHER_UID_DSC);
             $sql           = 'SELECT uid, uname FROM ' . $obj->db->prefix('users') . ' ORDER BY uname ASC';
             $result        = $obj->db->query($sql);
-            $usersArray    = array();
+            $usersArray     = [];
             $usersArray[0] = $GLOBALS['xoopsConfig']['anonymous'];
             while (($myrow = $obj->db->fetchArray($result)) !== false) {
                 $usersArray[$myrow['uid']] = $myrow['uname'];
@@ -357,7 +358,9 @@ class ItemForm extends Publisher\ThemeTabForm
             
             $dateExpireYesNo = new \XoopsFormRadioYN('', 'use_expire_yn', $dateexpire_opt);
             $dateexpire_datetime = new \XoopsFormDateTime('', 'dateexpire', $size = 15, $dateexpire, true);
-            if (0 == $dateexpire_opt) {$dateexpire_datetime->setExtra('disabled="disabled"');}
+            if (0 == $dateexpire_opt) {
+                $dateexpire_datetime->setExtra('disabled="disabled"');
+            }
             
             $dateExpireTray = new \XoopsFormElementTray(_CO_PUBLISHER_DATEEXPIRE, '');
             $dateExpireTray->setDescription(_CO_PUBLISHER_DATEEXPIRE_DSC);
@@ -407,7 +410,7 @@ class ItemForm extends Publisher\ThemeTabForm
                 $criteria     = new \CriteriaCompo(new \Criteria('imgcat_id', '(' . implode(',', $catids) . ')', 'IN'));
                 $criteria->add(new \Criteria('image_display', 1));
                 $criteria->setSort('image_nicename');
-                $criteria->setOrder('ASC');
+                $criteria->order = 'ASC'; // patch for XOOPS <= 2.5.10, does not set order correctly using setOrder() method
                 $imageObjs = $imageHandler->getObjects($criteria, true);
                 unset($criteria);
             }

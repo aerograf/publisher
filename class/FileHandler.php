@@ -20,7 +20,6 @@ namespace XoopsModules\Publisher;
  * @author          trabis <lusopoemas@gmail.com>
  * @author          The SmartFactory <www.smartfactory.ca>
  */
-
 use XoopsModules\Publisher;
 
 // defined('XOOPS_ROOT_PATH') || die('Restricted access');
@@ -49,13 +48,17 @@ class FileHandler extends \XoopsPersistableObjectHandler
     public $helper;
 
     /**
-     * @param \XoopsDatabase $db
-     * @param null|\XoopsModules\Publisher\Helper           $helper
+     * @param \XoopsDatabase                      $db
+     * @param \XoopsModules\Publisher\Helper|null $helper
      */
-    public function __construct(\XoopsDatabase $db = null, $helper = null)
+    public function __construct(\XoopsDatabase $db = null, \XoopsModules\Publisher\Helper $helper = null)
     {
         /** @var \XoopsModules\Publisher\Helper $this->helper */
-        $this->helper = $helper;
+        if (null === $helper) {
+            $this->helper = \XoopsModules\Publisher\Helper::getInstance();
+        } else {
+            $this->helper = $helper;
+        }
         parent::__construct($db, 'publisher_files', File::class, 'fileid', 'name');
     }
 
@@ -90,7 +93,7 @@ class FileHandler extends \XoopsPersistableObjectHandler
         if ('publisheritem' !== mb_strtolower(get_class($itemObj))) {
             return false;
         }
-        $files  = $this->getAllFiles($itemObj->itemid());
+        $files = $this->getAllFiles($itemObj->itemid());
         $result = true;
         foreach ($files as $file) {
             if (!$this->delete($file)) {
@@ -124,9 +127,9 @@ class FileHandler extends \XoopsPersistableObjectHandler
         list($count) = $GLOBALS['xoopsDB']->fetchRow($result);
         if ($count > 0) {
             $this->field_object = 'itemid';
-            $this->field_link   = 'itemid';
-            $hasStatusCriteria  = false;
-            $criteriaStatus     = new \CriteriaCompo();
+            $this->field_link = 'itemid';
+            $hasStatusCriteria = false;
+            $criteriaStatus = new \CriteriaCompo();
             if (is_array($status)) {
                 $hasStatusCriteria = true;
                 foreach ($status as $v) {
@@ -137,8 +140,8 @@ class FileHandler extends \XoopsPersistableObjectHandler
                 $criteriaStatus->add(new \Criteria('o.status', $status), 'OR');
             }
             $hasCategoryCriteria = false;
-            $criteriaCategory    = new \CriteriaCompo();
-            $category            = (array)$category;
+            $criteriaCategory = new \CriteriaCompo();
+            $category = (array)$category;
             if (isset($category[0]) && 0 != $category[0] && count($category) > 0) {
                 $hasCategoryCriteria = true;
                 foreach ($category as $cat) {
@@ -146,7 +149,7 @@ class FileHandler extends \XoopsPersistableObjectHandler
                 }
             }
             $criteriaItemid = new \Criteria('o.itemid', $itemid);
-            $criteria       = new \CriteriaCompo();
+            $criteria = new \CriteriaCompo();
             if (0 != $itemid) {
                 $criteria->add($criteriaItemid);
             }
@@ -157,7 +160,7 @@ class FileHandler extends \XoopsPersistableObjectHandler
                 $criteria->add($criteriaCategory);
             }
             $criteria->setSort($sort);
-            $criteria->setOrder($order);
+            $criteria->order = $order; // patch for XOOPS <= 2.5.10, does not set order correctly using setOrder() method
             $criteria->setLimit($limit);
             $criteria->setStart($start);
             $files = $this->getByLink($criteria, ['o.*'], true);

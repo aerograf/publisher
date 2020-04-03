@@ -20,7 +20,6 @@ namespace XoopsModules\Publisher;
  * @author          trabis <lusopoemas@gmail.com>
  * @author          The SmartFactory <www.smartfactory.ca>
  */
-
 use Xmf\Request;
 use XoopsModules\Publisher;
 
@@ -314,6 +313,7 @@ class Item extends \XoopsObject
         if (0 == $this->getVar('dateexpire')) {
             return false;
         }
+
         return formatTimestamp($this->getVar('dateexpire', $format), $dateFormat);
     }
     
@@ -525,7 +525,7 @@ class Item extends \XoopsObject
 
         $tags['MODULE_NAME']   = $this->helper->getModule()->getVar('name');
         $tags['ITEM_NAME']     = $this->getTitle();
-        $tags['ITEM_NAME']     = $this->subtitle();
+        $tags['ITEM_SUBNAME']  = $this->getSubtitle();
         $tags['CATEGORY_NAME'] = $this->getCategoryName();
         $tags['CATEGORY_URL']  = PUBLISHER_URL . '/category.php?categoryid=' . $this->categoryid();
         $tags['ITEM_BODY']     = $this->body();
@@ -560,23 +560,29 @@ class Item extends \XoopsObject
     {
         $memberHandler = xoops_getHandler('member');
         $groups        = $memberHandler->getGroupList();
+        $groupIds      = 0 < count($groups) ? array_keys($groups) : [];
+        /*
         $j             = 0;
         $groupIds      = [];
         foreach (array_keys($groups) as $i) {
             $groupIds[$j] = $i;
             ++$j;
         }
+        */
         $this->groupsRead = $groupIds;
     }
 
     /**
      * @todo look at this
+     * @deprecated - NOT USED
      *
      * @param $groupIds
      */
     public function setPermissions($groupIds)
     {
         if (!isset($groupIds)) {
+            $this->setDefaultPermissions();
+            /*
             $memberHandler = xoops_getHandler('member');
             $groups        = $memberHandler->getGroupList();
             $j             = 0;
@@ -585,6 +591,7 @@ class Item extends \XoopsObject
                 $groupIds[$j] = $i;
                 ++$j;
             }
+            */
         }
     }
 
@@ -613,7 +620,7 @@ class Item extends \XoopsObject
     public function getItemLink($class = false, $maxsize = 0)
     {
         if ($class) {
-            return '<a class=' . $class . ' href="' . $this->getItemUrl() . '">' . $this->getTitle($maxsize) . '</a>';
+            return '<a class="' . $class . '" href="' . $this->getItemUrl() . '">' . $this->getTitle($maxsize) . '</a>';
         }
 
         return '<a href="' . $this->getItemUrl() . '">' . $this->getTitle($maxsize) . '</a>';
@@ -775,7 +782,7 @@ class Item extends \XoopsObject
                     $summary = $this->getBody($maxCharSummary);
                 }
                 $item['summary']   = $summary;
-                $item['truncated'] = $maxCharSummary > 0 && strlen($summary) > $maxCharSummary;
+                $item['truncated'] = $maxCharSummary > 0 && mb_strlen($summary) > $maxCharSummary;
                 $item              = $this->toArrayFull($item);
                 break;
             case 'all':
@@ -967,7 +974,7 @@ class Item extends \XoopsObject
     public function getForm($title = 'default', $checkperm = true)
     {
         //        require_once $GLOBALS['xoops']->path('modules/' . PUBLISHER_DIRNAME . '/class/form/item.php');
-        $form = new Publisher\Form\ItemForm($title, 'form', xoops_getenv('PHP_SELF'), 'post', true);
+        $form = new Publisher\Form\ItemForm($title, 'form', xoops_getenv('SCRIPT_NAME'), 'post', true);
         $form->setCheckPermissions($checkperm);
         $form->createElements($this);
 

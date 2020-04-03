@@ -20,7 +20,6 @@ namespace XoopsModules\Publisher;
  * @author          trabis <lusopoemas@gmail.com>
  * @author          The SmartFactory <www.smartfactory.ca>
  */
-
 use XoopsModules\Publisher;
 
 // defined('XOOPS_ROOT_PATH') || die('Restricted access');
@@ -46,9 +45,9 @@ class ItemHandler extends \XoopsPersistableObjectHandler
 
     /**
      * @param \XoopsDatabase $db
-     * @param null|\XoopsModules\Publisher\Helper           $helper
+     * @param \XoopsModules\Publisher\Helper|null $helper
      */
-    public function __construct(\XoopsDatabase $db = null, $helper = null)
+    public function __construct(\XoopsDatabase $db = null, \XoopsModules\Publisher\Helper $helper = null)
     {
         /** @var Publisher\Helper $this->helper */
         if (null === $helper) {
@@ -56,6 +55,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         } else {
             $this->helper = $helper;
         }
+
         $this->publisherIsAdmin = $this->helper->isUserAdmin();
         parent::__construct($db, 'publisher_items', Item::class, 'itemid', 'title');
     }
@@ -327,7 +327,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
                 return 0;
             }
         }
-        //        $ret = array();
+        //        $ret = [];
         $criteria = $this->getItemsCriteria($categoryid, $status, $notNullFields, $criteriaPermissions);
 
         /*
@@ -373,7 +373,6 @@ class ItemHandler extends \XoopsPersistableObjectHandler
      */
     public function getAllPublished($limit = 0, $start = 0, $categoryid = -1, $sort = 'datesub', $order = 'DESC', $notNullFields = '', $asObject = true, $idKey = 'none', $excludeExpired = true)
     {
-        
         $otherCriteria = new \CriteriaCompo();
         if (!$this->publisherIsAdmin) {
                     $criteriaDateSub = new \Criteria('datesub', time(), '<=');
@@ -552,15 +551,15 @@ class ItemHandler extends \XoopsPersistableObjectHandler
                     $criteria->add($criteriaStatus);
                 }
         */
-        //        $ret = array();
+        //        $ret  = [];
 
-        if (!empty($otherCriteria)) {
+        if (null !== $otherCriteria) {
             $criteria->add($otherCriteria);
         }
         $criteria->setLimit($limit);
         $criteria->setStart($start);
         $criteria->setSort($sort);
-        $criteria->setOrder($order);
+        $criteria->order = $order; // patch for XOOPS <= 2.5.10 does not set order correctly using setOrder() method
         $ret = &$this->getObjects($criteria, $idKey, $notNullFields);
 
         return $ret;
@@ -673,6 +672,10 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         $searchin         = empty($searchin) ? ['title', 'body', 'summary'] : (is_array($searchin) ? $searchin : [$searchin]);
         if (in_array('all', $searchin) || 0 === count($searchin)) {
             $searchin = ['title', 'subtitle', 'body', 'summary', 'meta_keywords'];
+            //add support for searching in tags if Tag module exists and is active
+             if (false !== $this->helper->getHelper('tag')) {
+                 $searchin[] = 'item_tag';
+             }
         }
         if ($userid && is_array($userid)) {
             $userid       = array_map('intval', $userid);
@@ -690,6 +693,10 @@ class ItemHandler extends \XoopsPersistableObjectHandler
             $criteriaKeywords = new \CriteriaCompo();
             foreach ($queryArray as $iValue) {
                 $criteriaKeyword = new \CriteriaCompo();
+                foreach($searchin as $searchField) {
+                    $criteriaKeyword->add(new \Criteria($searchField, '%' . $iValue . '%', 'LIKE'), 'OR');
+                }
+                /*
                 if (in_array('title', $searchin)) {
                     $criteriaKeyword->add(new \Criteria('title', '%' . $iValue . '%', 'LIKE'), 'OR');
                 }
@@ -705,6 +712,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
                 if (in_array('meta_keywords', $searchin)) {
                     $criteriaKeyword->add(new \Criteria('meta_keywords', '%' . $iValue . '%', 'LIKE'), 'OR');
                 }
+                */
                 $criteriaKeywords->add($criteriaKeyword, $andor);
                 unset($criteriaKeyword);
             }
@@ -749,7 +757,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         if ('datesub' === $sortby) {
             $order = 'DESC';
         }
-        $criteria->setOrder($order);
+        $criteria->order = $order; // patch for XOOPS <= 2.5.10, does not set order correctly using setOrder() method
         $ret = &$this->getObjects($criteria);
 
         return $ret;
@@ -774,7 +782,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         if (empty($catIds)) {
             return $ret;
         }
-        /*$cat = array();
+        /*$cat  = [];
 
         $sql = "SELECT categoryid, MAX(datesub) as date FROM " . $this->db->prefix($this->helper->getDirname() . '_items') . " WHERE status IN (" . implode(',', $status) . ") GROUP BY categoryid";
         $result = $this->db->query($sql);
@@ -877,7 +885,7 @@ class ItemHandler extends \XoopsPersistableObjectHandler
         while (false !== ($row = $this->db->fetchArray($result))) {
             $catsCount[$row['parentid']][$row['categoryid']] = $row['count'];
         }
-        //        $resultCatCounts = array();
+        //        $resultCatCounts = [];
         foreach ($catsCount[0] as $subCatId => $count) {
             $this->resultCatCounts[$subCatId] = $count;
             if (isset($catsCount[$subCatId])) {

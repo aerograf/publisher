@@ -49,10 +49,10 @@ function publisher_items_spot_show($options)
     $optDisplayType     = $options[6];
     $optTruncate        = (int)$options[7];
     $optCatImage        = $options[8];
-    $optSortOrder       = $options[9];
-    $optBtnDisplayMore  = $options[10];
+    $optSortOrder       = isset($options[9])? $options[9]:'';
+    $optBtnDisplayMore  = isset($options[10])? $options[10]:'';
     $optDisplayReads    = $options[11];
-    
+
     if (0 == $optCategoryId) {
         $optCategoryId = -1;
     }
@@ -127,7 +127,7 @@ function publisher_items_spot_show($options)
             foreach ($selItems as $itemId) {
                 /** @var Publisher\Item $itemObj */
                 $itemObj = $itemHandler->get($itemId);
-                if (!$itemObj->notLoaded()) {
+                if (null !== $itemObj && !$itemObj->notLoaded()) {
                     $item             = $itemObj->toArraySimple();
                     $item['who_when'] = sprintf(_MB_PUBLISHER_WHO_WHEN, $item['who'], $item['when']);
                     if ($i < $itemsCount) {
@@ -222,7 +222,7 @@ function publisher_items_spot_edit($options)
     $form->addElement($catEle);
     $form->addElement($itemEle);
     $form->addElement($whoEle);
-    $form->addElement($comEle); 
+    $form->addElement($comEle);
     $form->addElement($typeEle);
     $form->addElement($truncateEle);
     $form->addElement($imageEle);

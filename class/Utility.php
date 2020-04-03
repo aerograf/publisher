@@ -21,7 +21,6 @@ namespace XoopsModules\Publisher;
  * @package     Publisher
  * @since       1.03
  */
-
 use Xmf\Request;
 use XoopsModules\Publisher;
 
@@ -31,11 +30,8 @@ use XoopsModules\Publisher;
 class Utility
 {
     use Common\VersionChecks; //checkVerXoops, checkVerPhp Traits
-
     use Common\ServerStats; // ServerStats Trait
-
     use Common\FilesManagement; // Files Management Trait
-
     use Common\ModuleStats; // ModuleStats Trait
 
     //--------------- Custom module methods -----------------------------
@@ -54,8 +50,7 @@ class Utility
                 }
                 file_put_contents($folder . '/index.html', '<script>history.go(-1);</script>');
             }
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             echo 'Caught exception: ', $e->getMessage(), "\n", '<br>';
         }
     }
@@ -177,7 +172,7 @@ class Utility
     }
 
     /**
-     * @param Publisher\Category $categoryObj
+     * @param \XoopsModules\Publisher\Category $categoryObj
      * @param int                $level
      */
     public static function displayCategory(Publisher\Category $categoryObj, $level = 0)
@@ -193,22 +188,23 @@ class Utility
         }
         $modify = "<a href='category.php?op=mod&amp;categoryid=" . $categoryObj->categoryid() . '&amp;parentid=' . $categoryObj->parentid() . "'><img src='" . PUBLISHER_URL . "/assets/images/links/edit.gif' title='" . _AM_PUBLISHER_EDITCOL . "' alt='" . _AM_PUBLISHER_EDITCOL . "'></a>";
         $delete = "<a href='category.php?op=del&amp;categoryid=" . $categoryObj->categoryid() . "'><img src='" . PUBLISHER_URL . "/assets/images/links/delete.png' title='" . _AM_PUBLISHER_DELETECOL . "' alt='" . _AM_PUBLISHER_DELETECOL . "'></a>";
-
+        $spaces = str_repeat('&nbsp;', ($level * 3));
+        /*
         $spaces = '';
         for ($j = 0; $j < $level; ++$j) {
             $spaces .= '&nbsp;&nbsp;&nbsp;';
         }
-
-        echo '<tr>';
-        echo "<td class='even' align='center'>" . $categoryObj->categoryid() . '</td>';
-        echo "<td class='even' align='left'>" . $spaces . "<a href='" . PUBLISHER_URL . '/category.php?categoryid=' . $categoryObj->categoryid() . "'><img src='" . PUBLISHER_URL . "/assets/images/links/subcat.gif' alt=''>&nbsp;" . $categoryObj->name() . '</a></td>';
-        echo "<td class='even' align='center'>" . $categoryObj->weight() . '</td>';
-        echo "<td class='even' align='center'> $modify $delete </td>";
-        echo '</tr>';
+        */
+        echo "<tr>\n"
+           . "<td class='even center'>" . $categoryObj->categoryid() . "</td>\n"
+           . "<td class='even left'>" . $spaces . "<a href='" . PUBLISHER_URL . '/category.php?categoryid=' . $categoryObj->categoryid() . "'><img src='" . PUBLISHER_URL . "/assets/images/links/subcat.gif' alt=''>&nbsp;" . $categoryObj->name() . "</a></td>\n"
+           . "<td class='even center'>" . $categoryObj->weight() . "</td>\n"
+           . "<td class='even center'> {$modify} {$delete} </td>\n"
+           . "</tr>\n";
         $subCategoriesObj = $helper->getHandler('Category')->getCategories(0, 0, $categoryObj->categoryid());
         if (count($subCategoriesObj) > 0) {
             ++$level;
-            foreach ($subCategoriesObj as $key => $thiscat) {
+            foreach ($subCategoriesObj as $thiscat) {
                 self::displayCategory($thiscat, $level);
             }
             unset($key);
@@ -842,10 +838,10 @@ class Utility
     public static function getCurrentUrls()
     {
         $http = false === mb_strpos(XOOPS_URL, 'https://') ? 'http://' : 'https://';
-        //    $phpself     = $_SERVER['PHP_SELF'];
+        //    $phpself     = $_SERVER['SCRIPT_NAME'];
         //    $httphost    = $_SERVER['HTTP_HOST'];
         //    $querystring = isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
-        $phpself     = Request::getString('PHP_SELF', '', 'SERVER');
+        $phpself     = Request::getString('SCRIPT_NAME', '', 'SERVER');
         $httphost    = Request::getString('HTTP_HOST', '', 'SERVER');
         $querystring = Request::getString('QUERY_STRING', '', 'SERVER');
 
@@ -1116,8 +1112,7 @@ class Utility
                 if ($withRedirect) {
                     throw new \RuntimeException(_CO_PUBLISHER_FILEUPLOAD_ERROR . static::formatErrors($fileObj->getErrors()));
                 }
-            }
-            catch (\Exception $e) {
+            } catch (\Exception $e) {
                 $helper->addLog($e);
                 redirect_header('file.php?op=mod&itemid=' . $fileObj->itemid(), 3, _CO_PUBLISHER_FILEUPLOAD_ERROR . static::formatErrors($fileObj->getErrors()));
             }
@@ -1389,7 +1384,6 @@ class Utility
         xoops_loadLanguage('admin', $moduleDirName);
         xoops_loadLanguage('common', $moduleDirName);
 
-
         //check for minimum XOOPS version
         $currentVer = mb_substr(XOOPS_VERSION, 6); // get the numeric part of string
         if (null === $requiredVer) {
@@ -1408,8 +1402,8 @@ class Utility
     /**
      * Verifies PHP version meets minimum requirements for this module
      * @static
-     * @param \XoopsModule|null $module
      *
+     * @param \XoopsModule|null $module
      * @return bool true if meets requirements, false if not
      */
     public static function checkVerPhp(\XoopsModule $module = null)
@@ -1437,7 +1431,6 @@ class Utility
 
         return $success;
     }
-
 
     /**
      * truncateHtml can truncate a string up to a number of characters while preserving whole words and HTML tags
