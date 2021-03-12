@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  You may not change or alter any portion of this comment or credits
  of supporting developers from this source code or any supporting source code
@@ -12,14 +14,15 @@
 /**
  * @copyright       The XUUPS Project http://sourceforge.net/projects/xuups/
  * @license         http://www.fsf.org/copyleft/gpl.html GNU public license
- * @package         Publisher
  * @since           1.0
  * @author          trabis <lusopoemas@gmail.com>
  * @author          The SmartFactory <www.smartfactory.ca>
  */
+
 use Xmf\Assert;
 use Xmf\Request;
-use XoopsModules\Publisher;
+use XoopsModules\Publisher\{Utility
+};
 
 require_once __DIR__ . '/admin_header.php';
 
@@ -28,10 +31,10 @@ if ('delfileok' === Request::getString('op', '', 'POST')) {
         redirect_header(XOOPS_URL . '/modules/publisher/admin/item.php', 3, _AM_PUBLISHER_FILE_DELETE_ERROR);
     }
 
-    $dir = Publisher\Utility::getUploadDir(true, 'content');
+    $dir        = Utility::getUploadDir(true, 'content');
     $check_path = realpath($dir);
 
-    $filename = Request::getString('address', '', 'POST');
+    $filename  = Request::getString('address', '', 'POST');
     $path_file = realpath($dir . '/' . $filename);
 
     try {

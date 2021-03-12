@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace XoopsModules\Publisher;
 
 /*
@@ -17,16 +19,11 @@ namespace XoopsModules\Publisher;
  *
  * @copyright       The XUUPS Project http://sourceforge.net/projects/xuups/
  * @license         http://www.fsf.org/copyleft/gpl.html GNU public license
- * @package         Publisher
  * @since           1.0
  * @author          trabis <lusopoemas@gmail.com>
  */
 
-use XoopsModules\Publisher;
-
-// defined('XOOPS_ROOT_PATH') || die('Restricted access');
-
-xoops_load('XoopsForm');
+\xoops_load('XoopsForm');
 
 /**
  * Form that will output formatted as a HTML table
@@ -58,17 +55,17 @@ class BlockForm extends \XoopsForm
         $ret = '<table border="0" width="100%">' . NWLINE;
         foreach ($this->getElements() as $ele) {
             if (!$ele->isHidden()) {
-                if (!$ele->getNocolspan()) {
+                if ($ele->getNocolspan()) {
+                    $ret .= '<tr><td colspan="2">';
+                    $ret .= '<span style="font-weight: bold;">' . $ele->getCaption() . '</span>';
+                    $ret .= '</td></tr><tr><td>' . $ele->render() . '</td></tr>';
+                } else {
                     $ret .= '<tr><td style="vertical-align: top; width: 250px;">';
                     $ret .= '<span style="font-weight: bold;">' . $ele->getCaption() . '</span>';
                     if (isset($eleDesc) && $eleDesc == $ele->getDescription()) {
                         $ret .= '<br><br><span style="font-weight: normal;">' . $eleDesc . '</span>';
                     }
                     $ret .= '</td><td>' . $ele->render() . '</td></tr>';
-                } else {
-                    $ret .= '<tr><td colspan="2">';
-                    $ret .= '<span style="font-weight: bold;">' . $ele->getCaption() . '</span>';
-                    $ret .= '</td></tr><tr><td>' . $ele->render() . '</td></tr>';
                 }
             }
         }

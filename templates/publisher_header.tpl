@@ -1,4 +1,4 @@
-<{if $collapsable_heading == 1}>
+<{if $collapsable_heading|default:0 == 1}>
     <script type="text/javascript"><!--
         function goto_URL(object) {
             window.location.href = object.options[object.selectedIndex].value;
@@ -41,22 +41,18 @@
     </script>
 <{/if}>
 
-<{if $publisher_display_breadcrumb}>
-
-    <div class="publisher_headertable">
-        <{if $module_home}>
-            <span class="publisher_modulename"><{$module_home}></span>
-            <{if $title_and_welcome}>
-                <span><{$lang_mainintro}></span>
+<{if $publisher_display_breadcrumb|default:false}>
+    <!-- Do not display breadcrumb if you are on indexpage or you do not want to display the module name -->
+    <{if $module_home || $categoryPath}>
+        <ul class="publisher_breadcrumb">
+            <{if $module_home}>
+                <li><{$module_home}></li>
             <{/if}>
-        <{/if}>
-        <{if $categoryPath}>
-            <span class="publisher_breadcrumb">
-                <{if $module_home}>
-                    >
-                <{/if}>
-                <{$categoryPath}>
-            </span>
-        <{/if}>
-    </div>
+            <{$categoryPath}>
+        </ul><br>
+    <{/if}>
+<{/if}>
+
+<{if $title_and_welcome|default:false && $lang_mainintro != ""}>
+                <span><{$lang_mainintro}></span>
 <{/if}>

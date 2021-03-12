@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace XoopsModules\Publisher;
 
 /*
@@ -29,7 +31,6 @@ class Highlighter
      * @var bool
      */
     protected $simple = false;
-
     /**
      * Only match whole words in the string
      * (off by default)
@@ -37,7 +38,6 @@ class Highlighter
      * @var bool
      */
     protected $wholeWords = false;
-
     /**
      * Case sensitive matching
      * (off by default)
@@ -45,14 +45,12 @@ class Highlighter
      * @var bool
      */
     protected $caseSens = false;
-
     /**
      * Overwrite links if matched
      * This should be used when the replacement string is a link
      * (off by default)
      */
     protected $stripLinks = false;
-
     /**
      * Style for the output string
      *
@@ -106,7 +104,7 @@ class Highlighter
      * @param string       $text   Haystack - The text to search
      * @param array|string $needle Needle - The string to highlight
      *
-     * @return string $text with needle highlighted
+     * @return string $text (with needle highlighted)
      */
     public function highlight($text, $needle)
     {
@@ -132,11 +130,11 @@ class Highlighter
             }
             // Strip links
             if ($this->stripLinks) {
-                $slRegex = sprintf($slPattern, $needleS);
-                $text    = preg_replace($slRegex, '\1', $text);
+                $slRegex = \sprintf($slPattern, $needleS);
+                $text    = \preg_replace($slRegex, '\1', $text);
             }
-            $regex = sprintf($pattern, $needleS);
-            $text  = preg_replace($regex, $this->replacementString, $text);
+            $regex = \sprintf($pattern, $needleS);
+            $text  = \preg_replace($regex, $this->replacementString, $text);
         }
 
         return $text;
